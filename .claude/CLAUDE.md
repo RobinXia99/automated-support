@@ -12,22 +12,24 @@ Slack message → triage → ticket number → categorize → confirm receipt �
 
 **ALL work MUST be delegated to the appropriate agent. The main agent orchestrates — it does NOT write code directly.**
 
+Each agent has a detailed spec in `.claude/agents/<name>.md`. Read the agent file before delegating.
+
 ### Code Team — builds the infrastructure
 
-| Agent | Scope | Key files |
-|-------|-------|-----------|
-| `slack-engineer` | Slack integration — poll/listen for messages, parse content, send replies, thread management | `src/slack.js`, `src/listeners/` |
-| `linear-engineer` | Linear integration — create issues with labels/priority/description, update status, assign team | `src/linear.js`, `src/services/linear-service.js` |
-| `dashboard-engineer` | Ticket system — SUP-XXXX ID generation, JSON store, ticket state machine (open→triaged→in-progress→resolved), lookup | `src/tickets/` |
+| Agent | File | Scope |
+|-------|------|-------|
+| `slack-engineer` | `.claude/agents/slack-engineer.md` | Slack polling, message parsing, threaded replies |
+| `linear-engineer` | `.claude/agents/linear-engineer.md` | Linear issue CRUD, labels, workflow states |
+| `dashboard-engineer` | `.claude/agents/dashboard-engineer.md` | SUP-XXXX ticket IDs, JSON store, state machine |
 
 ### Task Team — builds the automation logic
 
-| Agent | Scope | Key files |
-|-------|-------|-----------|
-| `triage-agent` | Categorization engine — analyze Slack message content, assign category (bug/feature/question/urgent), set priority (P1-P4), decide if auto-answerable | `src/agents/triage.js` |
-| `responder-agent` | Auto-reply — generate confirmation message with ticket ID, draft answer if auto-answerable, send back to Slack thread | `src/agents/responder.js` |
-| `planner-agent` | Linear ticket creation — translate triaged ticket into detailed Linear issue with title, description, labels, priority, and action plan | `src/agents/planner.js` |
-| `email-agent` | EmailJS notifications — send receipt confirmation email, ticket summary, escalation alerts to support team | `src/agents/email.js`, `src/services/email-service.js` |
+| Agent | File | Scope |
+|-------|------|-------|
+| `triage-agent` | `.claude/agents/triage-agent.md` | Categorize messages, assign priority, detect auto-answerable |
+| `responder-agent` | `.claude/agents/responder-agent.md` | Confirmation + auto-reply messages in Slack threads |
+| `planner-agent` | `.claude/agents/planner-agent.md` | Translate triaged tickets into detailed Linear issues |
+| `email-agent` | `.claude/agents/email-agent.md` | EmailJS confirmations, summaries, escalation alerts |
 
 ### Flow
 
@@ -36,7 +38,7 @@ Slack message (customer support email)
   │
   ├─► slack-engineer: receives & parses message
   │
-  ├─► dashboard-engineer: creates ticket SUP-XXXX (status: open)
+  ├─► dashboard-engineer: creates ticket SUP-XXXX (status: new)
   │
   ├─► triage-agent: categorizes (bug/feature/question/urgent), sets priority
   │     │
@@ -48,7 +50,7 @@ Slack message (customer support email)
   │           ├─► planner-agent: creates Linear ticket with action plan
   │           └─► email-agent: sends confirmation email to customer
   │
-  └─► dashboard-engineer: updates ticket status (triaged → in-progress)
+  └─► dashboard-engineer: updates ticket status (new → triaged → in-handling)
 ```
 
 ### Delegation rules
@@ -66,6 +68,33 @@ Slack message (customer support email)
 ```
 Agent(subagent_type="general-purpose", description="<agent-name>: <3-5 word summary>", prompt="<specific task with file paths and constraints>")
 ```
+
+## Linear — Hackberry Expo
+
+- **Team ID:** `ed718270-d482-4a1d-b339-e3f1b1786606`
+- **Key:** `HAC2`
+
+### Workflow States
+
+| State | ID | Type |
+|-------|-----|------|
+| New | `e7a9d144-5d41-4fe5-a96b-28d05810d774` | unstarted |
+| Triaged | `c634ffc1-f9b0-4e78-8442-d5b1f589500b` | unstarted |
+| Awaiting Response | `b3ffca59-ad5d-4dc1-93fc-3ca0cd275cb9` | started |
+| In Handling | `a81da4f3-f259-4aea-a569-a868997485a4` | started |
+| Escalated | `eded2803-3003-42b4-a8d0-6bcfb4158c46` | started |
+| Resolved | `86d3cd3a-dcd9-487a-b568-0dd3fd00c25b` | completed |
+| Closed | `ebffbfd8-9d50-4108-b805-7cac9207ebf8` | completed |
+| Spam / Invalid | `eeca9ad2-3f70-49d8-8c11-9b755822f760` | canceled |
+
+### Labels
+
+| Label | ID |
+|-------|-----|
+| Support: Bug | `c313936f-fa39-48b9-841c-de743646fa61` |
+| Support: Feature | `95ed94b6-c01b-42d6-8f20-46076f664df4` |
+| Support: Question | `0450483f-2f58-422e-b658-5f7a9656594f` |
+| Support: Urgent | `15a201f0-d0c0-4797-8751-bdbd0334af6e` |
 
 ## Architecture
 
