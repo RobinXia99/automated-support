@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automated Support Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.5; }
+body { min-height: 100vh; transition: background-color 200ms, color 200ms; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; font-size: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* ── Theme Variables ──────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-primary: #18181b; --bg-secondary: #27272a; --bg-tertiary: #3f3f46;
+  --text-primary: #f4f4f5; --text-secondary: #a1a1aa; --text-muted: #71717a;
+  --border: #3f3f46; --border-subtle: #27272a;
+  --hover-row: rgba(99,102,241,0.06);
+  --backdrop: rgba(0,0,0,0.5);
+  --input-bg: #27272a;
+  --skeleton-from: #27272a; --skeleton-to: #3f3f46;
+}
+[data-theme="light"] {
+  --bg-primary: #f9fafb; --bg-secondary: #ffffff; --bg-tertiary: #f3f4f6;
+  --text-primary: #111827; --text-secondary: #6b7280; --text-muted: #9ca3af;
+  --border: #e5e7eb; --border-subtle: #f3f4f6;
+  --hover-row: rgba(99,102,241,0.04);
+  --backdrop: rgba(0,0,0,0.3);
+  --input-bg: #f3f4f6;
+  --skeleton-from: #e5e7eb; --skeleton-to: #f3f4f6;
+}
+body { background: var(--bg-primary); color: var(--text-primary); }
+
+/* ── Accent Colors ────────────────────────────────────── */
+:root {
+  --indigo: #6366f1; --indigo-light: rgba(99,102,241,0.12);
+  --amber: #f59e0b; --amber-light: rgba(245,158,11,0.12);
+  --red: #ef4444; --red-light: rgba(239,68,68,0.12);
+  --green: #22c55e; --green-light: rgba(34,197,94,0.12);
+  --blue: #3b82f6; --blue-light: rgba(59,130,246,0.12);
+  --gray-pill: #71717a; --gray-pill-light: rgba(113,113,122,0.12);
+}
+
+/* ── Layout ───────────────────────────────────────────── */
+.container { max-width: 1440px; margin: 0 auto; padding: 0 24px; }
+
+/* ── Header ───────────────────────────────────────────── */
+.header { position: sticky; top: 0; z-index: 40; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 12px 0; }
+.header-inner { display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-left h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.lightning-icon { color: var(--indigo); font-size: 20px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.ticket-count { font-size: 12px; font-weight: 600; background: var(--indigo-light); color: var(--indigo); padding: 4px 10px; border-radius: 9999px; }
+.theme-toggle { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: background 200ms; font-size: 18px; }
+.theme-toggle:hover { background: var(--bg-tertiary); }
+
+/* ── Filter Bar ───────────────────────────────────────── */
+.filter-bar { display: flex; align-items: center; gap: 10px; padding: 14px 0; flex-wrap: wrap; }
+.search-input { flex: 1; min-width: 200px; max-width: 360px; padding: 8px 12px 8px 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-primary); outline: none; transition: border-color 200ms; }
+.search-input:focus { border-color: var(--indigo); }
+.search-wrap { position: relative; flex: 1; min-width: 200px; max-width: 360px; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+.filter-select { padding: 8px 30px 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-primary); outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; cursor: pointer; transition: border-color 200ms; }
+.filter-select:focus { border-color: var(--indigo); }
+.active-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; background: var(--indigo-light); color: var(--indigo); }
+.filter-chip button { color: var(--indigo); font-size: 14px; line-height: 1; padding: 0; display: flex; }
+
+/* ── Table ────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-secondary); }
+table { width: 100%; border-collapse: collapse; }
+thead th { position: sticky; top: 0; background: var(--bg-secondary); text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; user-select: none; }
+thead th.sortable { cursor: pointer; }
+thead th.sortable:hover { color: var(--text-secondary); }
+.sort-indicator { margin-left: 4px; font-size: 11px; }
+tbody tr { border-bottom: 1px solid var(--border-subtle); transition: background 150ms; cursor: pointer; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--hover-row); }
+tbody td { padding: 10px 14px; vertical-align: middle; }
+.cb-cell { width: 40px; text-align: center; }
+.cb-cell input[type="checkbox"] { accent-color: var(--indigo); width: 15px; height: 15px; cursor: pointer; }
+
+/* ── Column Styles ────────────────────────────────────── */
+.col-date { white-space: nowrap; font-size: 13px; font-variant-numeric: tabular-nums; }
+.col-date.age-amber { color: var(--amber); }
+.col-date.age-red { color: var(--red); }
+
+.sender-cell { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.sender-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff; flex-shrink: 0; }
+.sender-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+
+.col-preview { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 13px; }
+
+.subject-pill { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; border-left: 3px solid; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subject-pill.cat-general { border-color: var(--indigo); background: var(--indigo-light); color: var(--indigo); }
+.subject-pill.cat-bug { border-color: var(--amber); background: var(--amber-light); color: var(--amber); }
+.subject-pill.cat-urgent { border-color: var(--red); background: var(--red-light); color: var(--red); }
+.subject-pill.cat-feature { border-color: var(--green); background: var(--green-light); color: var(--green); }
+.subject-pill.cat-question { border-color: var(--indigo); background: var(--indigo-light); color: var(--indigo); }
+
+.progress-cell { display: flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 13px; }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--indigo); animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+.progress-text { color: var(--text-secondary); }
+.progress-icon { font-size: 15px; }
+.loading-dots::after { content: ''; animation: dots 1.4s steps(4,end) infinite; }
+@keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+
+.status-badge { display: inline-flex; padding: 3px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.status-ongoing { background: var(--blue-light); color: var(--blue); }
+.status-handled { background: var(--green-light); color: var(--green); }
+.status-escalated { background: var(--red-light); color: var(--red); }
+.status-spam { background: var(--gray-pill-light); color: var(--gray-pill); }
+
+/* ── Skeleton ─────────────────────────────────────────── */
+.skeleton-row td { padding: 14px 14px; }
+.skeleton-bar { height: 14px; border-radius: 6px; background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-to) 50%, var(--skeleton-from) 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Pagination ───────────────────────────────────────── */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; font-size: 13px; color: var(--text-secondary); }
+.pagination-info { font-variant-numeric: tabular-nums; }
+.pagination-buttons { display: flex; gap: 6px; }
+.page-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; font-weight: 500; transition: background 150ms, border-color 150ms; }
+.page-btn:hover:not(:disabled) { border-color: var(--indigo); }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Empty State ──────────────────────────────────────── */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.empty-state svg { margin-bottom: 12px; }
+.empty-state p { font-size: 15px; }
+
+/* ── Footer ───────────────────────────────────────────── */
+.footer { padding: 10px 0 20px; text-align: center; font-size: 12px; color: var(--text-muted); }
+
+/* ── Slide-over Panel ─────────────────────────────────── */
+.panel-backdrop { position: fixed; inset: 0; background: var(--backdrop); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 200ms; }
+.panel-backdrop.open { opacity: 1; pointer-events: auto; }
+.panel { position: fixed; top: 0; right: 0; bottom: 0; width: 480px; max-width: 100vw; background: var(--bg-secondary); z-index: 51; transform: translateX(100%); transition: transform 250ms cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; border-left: 1px solid var(--border); }
+.panel.open { transform: translateX(0); }
+.panel-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 24px 16px; border-bottom: 1px solid var(--border); }
+.panel-header-left { flex: 1; min-width: 0; }
+.panel-header-left .ticket-id { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
+.panel-header-left h2 { font-size: 17px; font-weight: 700; line-height: 1.3; word-break: break-word; }
+.panel-header-meta { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.panel-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--text-muted); font-size: 20px; flex-shrink: 0; transition: background 150ms; }
+.panel-close:hover { background: var(--bg-tertiary); }
+.panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.panel-section { margin-bottom: 24px; }
+.panel-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 8px; }
+.panel-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.meta-item label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+.meta-item span { font-size: 13px; font-weight: 500; }
+.blockquote { background: var(--bg-primary); border-left: 3px solid var(--indigo); padding: 14px 16px; border-radius: 0 8px 8px 0; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--text-secondary); }
+.ai-response-box { background: var(--indigo-light); border-left: 3px solid var(--indigo); padding: 14px 16px; border-radius: 0 8px 8px 0; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.low-confidence-banner { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--amber-light); color: var(--amber); border-radius: 8px; font-size: 13px; font-weight: 500; margin-bottom: 12px; }
+.priority-pill { display: inline-flex; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+.priority-p1 { background: var(--red-light); color: var(--red); }
+.priority-p2 { background: var(--amber-light); color: var(--amber); }
+.priority-p3 { background: var(--blue-light); color: var(--blue); }
+.priority-p4 { background: var(--gray-pill-light); color: var(--gray-pill); }
+
+/* ── Reply Composer ───────────────────────────────────── */
+.reply-composer { border-top: 1px solid var(--border); padding: 16px 24px 20px; background: var(--bg-secondary); }
+.reply-field { margin-bottom: 10px; }
+.reply-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+.reply-field input, .reply-field textarea { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-primary); outline: none; transition: border-color 200ms; resize: vertical; }
+.reply-field input:focus, .reply-field textarea:focus { border-color: var(--indigo); }
+.reply-field textarea { min-height: 100px; line-height: 1.6; }
+.char-count { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 2px; }
+.reply-actions { display: flex; gap: 8px; margin-top: 10px; }
+.btn-primary { padding: 8px 20px; border-radius: 8px; background: var(--indigo); color: #fff; font-weight: 600; font-size: 13px; transition: opacity 150ms; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary { padding: 8px 20px; border-radius: 8px; border: 1px solid var(--border); color: var(--text-secondary); font-weight: 500; font-size: 13px; transition: background 150ms; }
+.btn-secondary:hover { background: var(--bg-tertiary); }
+
+/* ── Toast ────────────────────────────────────────────── */
+.toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column-reverse; gap: 8px; pointer-events: none; }
+.toast { pointer-events: auto; padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #fff; animation: toast-in 250ms ease-out; max-width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.toast.success { background: #16a34a; }
+.toast.error { background: #dc2626; }
+.toast.removing { animation: toast-out 200ms ease-in forwards; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toast-out { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(10px); } }
+
+/* ── Bulk Actions Bar ────────────────────────────────── */
+.bulk-bar { display: none; align-items: center; gap: 10px; padding: 10px 0; }
+.bulk-bar.visible { display: flex; }
+.bulk-bar span { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.btn-danger { padding: 6px 16px; border-radius: 8px; background: var(--red); color: #fff; font-weight: 600; font-size: 13px; transition: opacity 150ms; }
+.btn-danger:hover { opacity: 0.9; }
+
+/* ── Answer Preview in Table ─────────────────────────── */
+.answer-preview { font-size: 12px; color: var(--green); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+
+/* ── Delete button in panel ──────────────────────────── */
+.btn-delete { padding: 8px 20px; border-radius: 8px; background: var(--red-light); color: var(--red); font-weight: 600; font-size: 13px; transition: background 150ms; }
+.btn-delete:hover { background: var(--red); color: #fff; }
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .panel { width: 100vw; }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .search-wrap { max-width: 100%; }
+  .col-preview { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <div class="header-left">
+      <span class="lightning-icon">&#9889;</span>
+      <h1>Automated Support</h1>
+    </div>
+    <div class="header-right">
+      <span class="ticket-count" id="ticketCount">0 tickets</span>
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">&#9790;</button>
+    </div>
+  </div>
+</header>
+
+<!-- Filter Bar -->
+<div class="container">
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search tickets..." style="width:100%;padding-left:36px;">
+    </div>
+    <select class="filter-select" id="statusFilter">
+      <option value="">All Statuses</option>
+      <option value="ongoing">Ongoing</option>
+      <option value="handled">Handled</option>
+    </select>
+    <select class="filter-select" id="categoryFilter">
+      <option value="">All Categories</option>
+      <option value="bug">Bug</option>
+      <option value="feature">Feature</option>
+      <option value="question">Question</option>
+      <option value="urgent">Urgent</option>
+      <option value="general">General</option>
+    </select>
+    <div class="active-filters" id="activeFilters"></div>
+  </div>
+</div>
+
+<!-- Bulk Actions -->
+<div class="container">
+  <div class="bulk-bar" id="bulkBar">
+    <span id="bulkCount">0 selected</span>
+    <button class="btn-danger" id="bulkDeleteBtn">Delete Selected</button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="container">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="cb-cell"><input type="checkbox" id="selectAll"></th>
+          <th class="sortable" data-sort="createdAt">Date <span class="sort-indicator" id="sort-createdAt"></span></th>
+          <th class="sortable" data-sort="sender">Sender <span class="sort-indicator" id="sort-sender"></span></th>
+          <th>Preview</th>
+          <th class="sortable" data-sort="subject">Subject <span class="sort-indicator" id="sort-subject"></span></th>
+          <th class="sortable" data-sort="progress">Progress <span class="sort-indicator" id="sort-progress"></span></th>
+          <th class="sortable" data-sort="status">Status <span class="sort-indicator" id="sort-status"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div class="pagination" id="pagination">
+    <span class="pagination-info" id="paginationInfo"></span>
+    <div class="pagination-buttons">
+      <button class="page-btn" id="prevBtn" disabled>Previous</button>
+      <button class="page-btn" id="nextBtn" disabled>Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer" id="footer">Last updated: just now</div>
+
+<!-- Panel Backdrop -->
+<div class="panel-backdrop" id="panelBackdrop"></div>
+
+<!-- Slide-over Panel -->
+<div class="panel" id="panel">
+  <div class="panel-header">
+    <div class="panel-header-left">
+      <div class="ticket-id" id="panelTicketId"></div>
+      <h2 id="panelSubject"></h2>
+      <div class="panel-header-meta" id="panelHeaderMeta"></div>
+    </div>
+    <button class="panel-close" id="panelClose">&times;</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="reply-composer" id="replyComposer">
+    <div class="reply-field">
+      <label for="replyTo">To</label>
+      <input type="email" id="replyTo" placeholder="recipient@example.com">
+    </div>
+    <div class="reply-field">
+      <label for="replyMessage">Message</label>
+      <textarea id="replyMessage" placeholder="Write your reply..."></textarea>
+      <div class="char-count" id="charCount">0 characters</div>
+    </div>
+    <div class="reply-actions">
+      <button class="btn-primary" id="sendReplyBtn">Send Reply</button>
+      <button class="btn-secondary" id="discardBtn">Discard</button>
+      <button class="btn-delete" id="deletePanelBtn">Delete Ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ── State ────────────────────────────────────────────── */
+let allTickets = [];
+let filteredTickets = [];
+let currentPage = 1;
+let selectedIds = new Set();
+let currentSort = { field: null, order: null }; // null = default composite sort
+let openTicket = null;
+let lastFetchTime = Date.now();
+let isSending = false;
+const PAGE_SIZE = 25;
+
+/* ── Theme ────────────────────────────────────────────── */
+const themeToggle = document.getElementById('themeToggle');
+const storedTheme = localStorage.getItem('sup-theme');
+if (storedTheme) document.documentElement.setAttribute('data-theme', storedTheme);
+function updateThemeIcon() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  themeToggle.innerHTML = dark ? '&#9790;' : '&#9728;';
+}
+updateThemeIcon();
+themeToggle.addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sup-theme', next);
+  updateThemeIcon();
+});
+
+/* ── Helpers ──────────────────────────────────────────── */
+function relativeTime(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
+  const d = Math.floor(h / 24); if (d < 30) return d + 'd ago';
+  const mo = Math.floor(d / 30); return mo + 'mo ago';
+}
+
+function ageClass(iso) {
+  const h = (Date.now() - new Date(iso).getTime()) / 3600000;
+  if (h > 72) return 'age-red';
+  if (h > 24) return 'age-amber';
+  return '';
+}
+
+function senderColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  const colors = ['#6366f1','#ec4899','#f59e0b','#22c55e','#3b82f6','#ef4444','#8b5cf6','#14b8a6','#f97316','#06b6d4'];
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function initial(name) {
+  return (name || '?')[0].toUpperCase();
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+function statusGroup(status) {
+  if (['new','triaged','awaiting-response','in-handling'].includes(status)) return 'ongoing';
+  if (['resolved','closed'].includes(status)) return 'handled';
+  if (status === 'escalated') return 'escalated';
+  if (status === 'spam') return 'spam';
+  return 'ongoing';
+}
+
+function statusLabel(status) {
+  const g = statusGroup(status);
+  return { ongoing: 'Ongoing', handled: 'Handled', escalated: 'Escalated', spam: 'Spam' }[g] || 'Ongoing';
+}
+
+function statusBadgeClass(status) {
+  return 'status-' + statusGroup(status);
+}
+
+function categoryClass(cat) {
+  return 'cat-' + (cat || 'general');
+}
+
+/* ── Toast ────────────────────────────────────────────── */
+function showToast(msg, type) {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => { el.classList.add('removing'); setTimeout(() => el.remove(), 200); }, 4000);
+}
+
+/* ── Fetch Tickets ────────────────────────────────────── */
+async function fetchTickets() {
+  try {
+    const res = await fetch('/api/tickets');
+    if (!res.ok) throw new Error('Failed to fetch');
+    const data = await res.json();
+    allTickets = data;
+    lastFetchTime = Date.now();
+    applyFiltersAndRender();
+  } catch (e) {
+    console.error('Fetch error:', e);
+  }
+}
+
+/* ── Filtering & Sorting ──────────────────────────────── */
+function applyFiltersAndRender() {
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const statusVal = document.getElementById('statusFilter').value;
+  const categoryVal = document.getElementById('categoryFilter').value;
+
+  filteredTickets = allTickets.filter(t => {
+    if (statusVal === 'ongoing' && !['new','triaged','awaiting-response','in-handling'].includes(t.status)) return false;
+    if (statusVal === 'handled' && !['resolved','closed'].includes(t.status)) return false;
+    if (categoryVal && t.category !== categoryVal) return false;
+    if (search) {
+      const hay = [t.id, t.sender, t.senderEmail, t.subject, t.message, t.category].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  if (currentSort.field) {
+    const f = currentSort.field;
+    const dir = currentSort.order === 'asc' ? 1 : -1;
+    filteredTickets.sort((a, b) => {
+      let va = a[f] || '', vb = b[f] || '';
+      if (f === 'createdAt') { va = new Date(va).getTime(); vb = new Date(vb).getTime(); }
+      else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+      return va < vb ? -dir : va > vb ? dir : 0;
+    });
+  } else {
+    // Default: unhandled first (ongoing/escalated), then oldest createdAt at top (longest waiting = most urgent)
+    filteredTickets.sort((a, b) => {
+      const handledStatuses = ['resolved', 'closed', 'spam'];
+      const aHandled = handledStatuses.includes(a.status) ? 1 : 0;
+      const bHandled = handledStatuses.includes(b.status) ? 1 : 0;
+      if (aHandled !== bHandled) return aHandled - bHandled;
+      // Within same group: oldest first (longest waiting at top)
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+  }
+
+  // Reset to page 1 if needed
+  const maxPage = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
+  if (currentPage > maxPage) currentPage = maxPage;
+
+  updateTicketCount();
+  renderChips();
+  renderTable();
+  renderPagination();
+}
+
+function updateTicketCount() {
+  document.getElementById('ticketCount').textContent = allTickets.length + ' ticket' + (allTickets.length !== 1 ? 's' : '');
+}
+
+/* ── Filter Chips ─────────────────────────────────────── */
+function renderChips() {
+  const container = document.getElementById('activeFilters');
+  container.innerHTML = '';
+  const statusVal = document.getElementById('statusFilter').value;
+  const categoryVal = document.getElementById('categoryFilter').value;
+  const search = document.getElementById('searchInput').value.trim();
+
+  if (search) addChip(container, 'Search: ' + search, () => { document.getElementById('searchInput').value = ''; applyFiltersAndRender(); });
+  if (statusVal) addChip(container, 'Status: ' + statusVal, () => { document.getElementById('statusFilter').value = ''; applyFiltersAndRender(); });
+  if (categoryVal) addChip(container, 'Category: ' + categoryVal, () => { document.getElementById('categoryFilter').value = ''; applyFiltersAndRender(); });
+}
+function addChip(container, label, onRemove) {
+  const chip = document.createElement('span');
+  chip.className = 'filter-chip';
+  chip.innerHTML = escapeHtml(label) + ' <button>&times;</button>';
+  chip.querySelector('button').addEventListener('click', (e) => { e.stopPropagation(); onRemove(); });
+  container.appendChild(chip);
+}
+
+/* ── Render Table ─────────────────────────────────────── */
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page = filteredTickets.slice(start, start + PAGE_SIZE);
+
+  if (filteredTickets.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M21 21l-5.2-5.2M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><p>No tickets match your filters</p></div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = page.map(t => {
+    const checked = selectedIds.has(t.id) ? 'checked' : '';
+    const preview = (t.message || '').slice(0, 100);
+    return `<tr data-id="${escapeHtml(t.id)}">
+      <td class="cb-cell"><input type="checkbox" data-ticket-id="${escapeHtml(t.id)}" ${checked}></td>
+      <td class="col-date ${ageClass(t.createdAt)}" title="${escapeHtml(t.createdAt)}">${relativeTime(t.createdAt)}</td>
+      <td><div class="sender-cell"><span class="sender-avatar" style="background:${senderColor(t.sender || '')}">${initial(t.sender)}</span><span class="sender-name" title="${escapeHtml(t.sender)}">${escapeHtml(t.sender)}</span></div></td>
+      <td class="col-preview" title="${escapeHtml(preview)}">${escapeHtml(preview)}</td>
+      <td><span class="subject-pill ${categoryClass(t.category)}">${escapeHtml(t.subject || t.category || 'General')}</span></td>
+      <td>${renderProgress(t)}</td>
+      <td><span class="status-badge ${statusBadgeClass(t.status)}">${statusLabel(t.status)}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Re-attach row click and checkbox handlers
+  tbody.querySelectorAll('tr[data-id]').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.type === 'checkbox') return;
+      const id = row.getAttribute('data-id');
+      openPanel(id);
+    });
+  });
+  tbody.querySelectorAll('input[type="checkbox"][data-ticket-id]').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      e.stopPropagation();
+      if (cb.checked) selectedIds.add(cb.dataset.ticketId);
+      else selectedIds.delete(cb.dataset.ticketId);
+      updateSelectAll();
+    });
+  });
+  updateSelectAll();
+}
+
+function renderProgress(t) {
+  const p = t.progress;
+  let html = '';
+  if (p === 'processing') {
+    html = '<div class="progress-cell"><span class="pulse-dot"></span><span class="progress-text">AI reviewing...</span></div>';
+  } else if (p === 'ai-resolved') {
+    html = '<div class="progress-cell"><span class="progress-icon" style="color:var(--green)">&#10003;</span><span style="color:var(--green)">Answered by AI</span></div>';
+    if (t.aiResponse) html += '<div class="answer-preview" title="' + escapeHtml(t.aiResponse) + '">' + escapeHtml(t.aiResponse.slice(0, 80)) + '</div>';
+  } else if (p === 'assigned-to-dev') {
+    const assignee = t.linearAssignee ? ' \u2014 ' + escapeHtml(t.linearAssignee) : '';
+    html = '<div class="progress-cell"><span class="progress-icon" style="color:var(--blue)">&rarr;</span><span>Assigned' + assignee + '</span></div>';
+  } else if (p === 'pending') {
+    html = '<div class="progress-cell"><span class="progress-text">Awaiting reply<span class="loading-dots"></span></span></div>';
+  } else {
+    html = '<div class="progress-cell"><span class="progress-text" style="color:var(--text-muted)">\u2014</span></div>';
+  }
+  return html;
+}
+
+function renderSkeleton() {
+  const tbody = document.getElementById('tableBody');
+  const rows = Array.from({ length: 8 }, () =>
+    `<tr class="skeleton-row"><td class="cb-cell"><div class="skeleton-bar" style="width:16px;height:16px;margin:0 auto;border-radius:3px;"></div></td>` +
+    `<td><div class="skeleton-bar" style="width:60px"></div></td>` +
+    `<td><div class="skeleton-bar" style="width:100px"></div></td>` +
+    `<td><div class="skeleton-bar" style="width:200px"></div></td>` +
+    `<td><div class="skeleton-bar" style="width:120px"></div></td>` +
+    `<td><div class="skeleton-bar" style="width:110px"></div></td>` +
+    `<td><div class="skeleton-bar" style="width:70px"></div></td></tr>`
+  ).join('');
+  tbody.innerHTML = rows;
+}
+
+/* ── Sort Indicators ──────────────────────────────────── */
+function updateSortIndicators() {
+  document.querySelectorAll('.sort-indicator').forEach(el => el.textContent = '');
+  if (currentSort.field) {
+    const el = document.getElementById('sort-' + currentSort.field);
+    if (el) el.textContent = currentSort.order === 'asc' ? '\u2191' : '\u2193';
+  }
+}
+document.querySelectorAll('th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const f = th.dataset.sort;
+    if (currentSort.field === f) {
+      currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentSort.field = f;
+      currentSort.order = 'asc';
+    }
+    updateSortIndicators();
+    applyFiltersAndRender();
+  });
+});
+
+/* ── Select All ───────────────────────────────────────── */
+document.getElementById('selectAll').addEventListener('change', (e) => {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page = filteredTickets.slice(start, start + PAGE_SIZE);
+  page.forEach(t => { if (e.target.checked) selectedIds.add(t.id); else selectedIds.delete(t.id); });
+  renderTable();
+});
+function updateSelectAll() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page = filteredTickets.slice(start, start + PAGE_SIZE);
+  const all = page.length > 0 && page.every(t => selectedIds.has(t.id));
+  document.getElementById('selectAll').checked = all;
+  updateBulkBar();
+}
+
+/* ── Pagination ───────────────────────────────────────── */
+function renderPagination() {
+  const total = filteredTickets.length;
+  const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentPage * PAGE_SIZE, total);
+  document.getElementById('paginationInfo').textContent = total > 0 ? `Showing ${start}\u2013${end} of ${total}` : 'No results';
+  document.getElementById('prevBtn').disabled = currentPage <= 1;
+  document.getElementById('nextBtn').disabled = currentPage >= maxPage;
+}
+document.getElementById('prevBtn').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTable(); renderPagination(); } });
+document.getElementById('nextBtn').addEventListener('click', () => {
+  const maxPage = Math.ceil(filteredTickets.length / PAGE_SIZE);
+  if (currentPage < maxPage) { currentPage++; renderTable(); renderPagination(); }
+});
+
+/* ── Filter Listeners ─────────────────────────────────── */
+let searchDebounce;
+document.getElementById('searchInput').addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => { currentPage = 1; applyFiltersAndRender(); }, 250);
+});
+document.getElementById('statusFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
+document.getElementById('categoryFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
+
+/* ── Panel ────────────────────────────────────────────── */
+function openPanel(id) {
+  const t = allTickets.find(x => x.id === id);
+  if (!t) return;
+  openTicket = t;
+
+  document.getElementById('panelTicketId').textContent = t.id;
+  document.getElementById('panelSubject').textContent = t.subject || 'No subject';
+
+  // Header meta: status + priority
+  const hm = document.getElementById('panelHeaderMeta');
+  hm.innerHTML = `<span class="status-badge ${statusBadgeClass(t.status)}">${statusLabel(t.status)}</span>` +
+    (t.priority ? `<span class="priority-pill priority-${(t.priority || '').toLowerCase()}">${escapeHtml(t.priority)}</span>` : '');
+
+  // Body
+  const body = document.getElementById('panelBody');
+  let html = '';
+
+  // Metadata
+  html += '<div class="panel-section"><div class="panel-section-title">Details</div><div class="panel-meta-grid">';
+  html += `<div class="meta-item"><label>Sender</label><span>${escapeHtml(t.sender)}</span></div>`;
+  html += `<div class="meta-item"><label>Email</label><span>${escapeHtml(t.senderEmail || '\u2014')}</span></div>`;
+  html += `<div class="meta-item"><label>Date</label><span title="${escapeHtml(t.createdAt)}">${new Date(t.createdAt).toLocaleString()}</span></div>`;
+  html += `<div class="meta-item"><label>Category</label><span class="subject-pill ${categoryClass(t.category)}" style="font-size:11px;padding:2px 8px;">${escapeHtml(t.category || 'general')}</span></div>`;
+  if (t.linearIssueId) html += `<div class="meta-item"><label>Linear Issue</label><span>${escapeHtml(t.linearIssueId)}</span></div>`;
+  if (t.linearAssignee) html += `<div class="meta-item"><label>Assignee</label><span>${escapeHtml(t.linearAssignee)}</span></div>`;
+  html += '</div></div>';
+
+  // Original message
+  html += '<div class="panel-section"><div class="panel-section-title">Original Message</div>';
+  html += `<div class="blockquote">${escapeHtml(t.message)}</div></div>`;
+
+  // AI response
+  if (t.aiResponse) {
+    html += '<div class="panel-section"><div class="panel-section-title">AI Response</div>';
+    if (t.aiConfidence !== null && t.aiConfidence !== undefined && t.aiConfidence < 0.7) {
+      html += '<div class="low-confidence-banner"><span>&#9888;</span> AI confidence is low \u2014 review carefully</div>';
+    }
+    html += `<div class="ai-response-box">${escapeHtml(t.aiResponse)}</div></div>`;
+  }
+
+  body.innerHTML = html;
+
+  // Pre-fill reply
+  document.getElementById('replyTo').value = t.senderEmail || '';
+  document.getElementById('replyMessage').value = t.aiResponse || '';
+  updateCharCount();
+
+  // Open
+  document.getElementById('panelBackdrop').classList.add('open');
+  document.getElementById('panel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panelBackdrop').classList.remove('open');
+  document.getElementById('panel').classList.remove('open');
+  openTicket = null;
+}
+document.getElementById('panelBackdrop').addEventListener('click', closePanel);
+document.getElementById('panelClose').addEventListener('click', closePanel);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanel(); });
+
+/* ── Reply ────────────────────────────────────────────── */
+const replyMsg = document.getElementById('replyMessage');
+replyMsg.addEventListener('input', updateCharCount);
+function updateCharCount() {
+  document.getElementById('charCount').textContent = replyMsg.value.length + ' characters';
+}
+
+document.getElementById('sendReplyBtn').addEventListener('click', async () => {
+  if (!openTicket || isSending) return;
+  const to = document.getElementById('replyTo').value.trim();
+  const message = replyMsg.value.trim();
+  if (!to || !message) { showToast('Please fill in both recipient and message', 'error'); return; }
+
+  isSending = true;
+  document.getElementById('sendReplyBtn').disabled = true;
+  document.getElementById('sendReplyBtn').textContent = 'Sending...';
+
+  try {
+    const res = await fetch(`/api/tickets/${openTicket.id}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, message })
+    });
+    if (!res.ok) throw new Error('Send failed');
+
+    // Update status locally
+    try {
+      await fetch(`/api/tickets/${openTicket.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'resolved' })
+      });
+    } catch (_) {}
+
+    showToast('Reply sent successfully', 'success');
+    closePanel();
+    await fetchTickets();
+  } catch (e) {
+    showToast('Failed to send reply: ' + e.message, 'error');
+  } finally {
+    isSending = false;
+    document.getElementById('sendReplyBtn').disabled = false;
+    document.getElementById('sendReplyBtn').textContent = 'Send Reply';
+  }
+});
+
+document.getElementById('discardBtn').addEventListener('click', () => {
+  closePanel();
+});
+
+/* ── Delete (panel) ──────────────────────────────────── */
+document.getElementById('deletePanelBtn').addEventListener('click', async () => {
+  if (!openTicket) return;
+  if (!confirm('Delete ticket ' + openTicket.id + '? This cannot be undone.')) return;
+  try {
+    const res = await fetch('/api/tickets/' + openTicket.id, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Delete failed');
+    showToast('Ticket ' + openTicket.id + ' deleted', 'success');
+    closePanel();
+    await fetchTickets();
+  } catch (e) {
+    showToast('Failed to delete: ' + e.message, 'error');
+  }
+});
+
+/* ── Bulk Delete ─────────────────────────────────────── */
+document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
+  if (selectedIds.size === 0) return;
+  if (!confirm('Delete ' + selectedIds.size + ' ticket(s)? This cannot be undone.')) return;
+  try {
+    const res = await fetch('/api/tickets/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: Array.from(selectedIds) })
+    });
+    if (!res.ok) throw new Error('Bulk delete failed');
+    showToast(selectedIds.size + ' ticket(s) deleted', 'success');
+    selectedIds.clear();
+    await fetchTickets();
+  } catch (e) {
+    showToast('Failed to delete: ' + e.message, 'error');
+  }
+});
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  const count = document.getElementById('bulkCount');
+  if (selectedIds.size > 0) {
+    bar.classList.add('visible');
+    count.textContent = selectedIds.size + ' selected';
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+/* ── Footer / Auto-refresh ────────────────────────────── */
+function updateFooter() {
+  const s = Math.floor((Date.now() - lastFetchTime) / 1000);
+  document.getElementById('footer').textContent = 'Last updated: ' + (s < 5 ? 'just now' : s + 's ago');
+}
+
+/* ── Init ─────────────────────────────────────────────── */
+renderSkeleton();
+fetchTickets();
+setInterval(fetchTickets, 10000);
+setInterval(updateFooter, 1000);
+</script>
+</body>
+</html>
